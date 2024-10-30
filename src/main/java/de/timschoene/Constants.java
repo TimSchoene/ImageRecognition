@@ -21,18 +21,19 @@ public class Constants {
 
     //TRAINING
     public static final int AMOUNT_TRAINING = 60000; //How many Images the Network trains (Should be at most NUM_TRAINING_IMAGES, otherwise Images repeat)
+    public static final int MINI_BATCH_SIZE = 5; //How often the training deltas are added to the weights and biases
 
     //STATISTICS
-    public static final int STATISTIC_START_BATCH = 58000; //The first iteration that is considered for Statistics (must be smaller than AMOUNT_TRAINING and greater than 0)
+    public static final int STATISTIC_START_BATCH = 59000; //The first iteration that is considered for Statistics (must be smaller than AMOUNT_TRAINING and greater than 0)
 
     //LEARNING RATE
     public static final double WEIGHT_LEARNING_RATE = 1; //How quickly the weights learn (Sweet Spot = 1)
-    public static final double BIAS_LEARNING_RATE = 2; //How quickly the biases learn (Sweet Spot = 2)
+    public static final double BIAS_LEARNING_RATE = 1; //How quickly the biases learn (Sweet Spot = 2)
 
     //NETWORK STRUCTURE
     public static final int INPUT_NEURON_LAYER_SIZE = IMAGE_WIDTH * IMAGE_HEIGHT; //Number of Pixels in the Image (Fixed)
     public static final int NEURON_LAYER_SIZE = 28; //Number of Neurons per layer (Sweet Spot of Learning quickly and achieving a high score = 28)
-    public static final int NEURON_LAYERS = 2; //Number of hidden Layers in the Network (Sweet Spot = 2)
+    public static final int NEURON_LAYERS = 1; //Number of hidden Layers in the Network (Sweet Spot = 2)
     public static final int OUTPUT_NEURON_LAYER_SIZE = 10; //There is 10 output numbers (Fixed)
 
 

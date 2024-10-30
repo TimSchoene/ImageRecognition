@@ -30,4 +30,13 @@ public class Calc {
         }
         return output;
     }
+
+    public static int findMaxIndex(double[] output) {
+        int maxIndex = 0;
+        for (int i = 0; i < output.length; i++) {
+            if(output[i]>output[maxIndex])
+                maxIndex = i;
+        }
+        return maxIndex;
+    }
 }

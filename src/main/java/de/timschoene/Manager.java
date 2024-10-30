@@ -20,13 +20,13 @@ public class Manager {
         network = new NeuralNetwork();
         image = new Image(Constants.TRAINING_IMAGE_FILE_PATH, Constants.TRAINING_CHECK_FILE_PATH, Constants.IMAGE_WIDTH, Constants.IMAGE_HEIGHT, Constants.NUM_TRAINING_IMAGES);
 
-        network.oneTimeSetup();
+        //network.loadFromJson();
+        network.oneTimeSetup(); //REMOVE LATER
 
-        for(int i = 0; i < Constants.AMOUNT_TRAINING; i++) { //number of mini batches to perform
+        for(int i = 0; i < Constants.AMOUNT_TRAINING; i++) { //number of training images to use
             network.resetCost();
             if(currentImage >= Constants.NUM_TRAINING_IMAGES) { currentImage = 0; }
 
-            System.out.print("\n\n\nImage: " + i + ", ");
             System.out.println("Iteration " + (currentIteration) + ": ");
             loadNextImageIntoNetwork();
             network.forwardPropagate();
@@ -34,10 +34,21 @@ public class Manager {
             currentIteration++;
 
             network.backPropagate();
+            if(i % Constants.MINI_BATCH_SIZE == 0) {
+                network.realizeBackProp(); //every 100 gens the backpropagation deltas are added to the weights and biases
+                network.resetDeltas();
+            }
         }
+
         double correctPercentage = (double)network.gottenRight / (Constants.AMOUNT_TRAINING - Constants.STATISTIC_START_BATCH) * 100;
         System.out.println("The Network identified " + network.gottenRight + " of " + (Constants.AMOUNT_TRAINING - Constants.STATISTIC_START_BATCH) + " images correctly");
         System.out.println("The Network identified " + correctPercentage + "% of images correctly.");
+        for (int i = 0; i < Constants.OUTPUT_NEURON_LAYER_SIZE; i++) {
+            network.correctPerNumber[i] /= network.totalPerNumber[i];
+            System.out.println("The Network got " + network.correctPerNumber[i]*100 + "% of " + i + "s correctly.");
+            System.out.println("The Network guessed a " + i + " " + network.totalPerNumber[i]*100 / (Constants.AMOUNT_TRAINING - Constants.STATISTIC_START_BATCH) + "% of times.");
+        }
+
         //network.saveToJson();
     }
 

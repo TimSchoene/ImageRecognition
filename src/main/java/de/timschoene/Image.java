@@ -33,7 +33,7 @@ public class Image {
             throw new IllegalArgumentException("Invalid image index.");
         }
 
-        System.out.println(index + " = index");
+        //System.out.println(index + " = index");
 
         double[] image = new double[imageSize];
         try (DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(trainingImageFilePath)))) {

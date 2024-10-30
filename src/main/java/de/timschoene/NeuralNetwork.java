@@ -1,8 +1,9 @@
 package de.timschoene;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.math3.stat.StatUtils;
-
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -25,10 +26,14 @@ public class NeuralNetwork {
     private final int totalLayerSize = Constants.NEURON_LAYERS + 2;
 
     private final double[][] neurons = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE]; //[gen][pos]
-    private final double[][] biases = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE]; //[gen][pos]
-    private final double[][][] weights = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE][Constants.NEURON_LAYER_SIZE]; //[startGen][startPos][endPos]
+    private double[][] biases = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE]; //[gen][pos]
+        private double[][] deltaBiases = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE];
+    private double[][][] weights = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE][Constants.NEURON_LAYER_SIZE]; //[startGen][startPos][endPos]
+        private double[][][] deltaWeights = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE][Constants.NEURON_LAYER_SIZE];
     private final double[] cost = new double[Constants.OUTPUT_NEURON_LAYER_SIZE];
     public int gottenRight = 0; //Tracking how many images the network has identified correctly
+    public double[] correctPerNumber = new double[Constants.OUTPUT_NEURON_LAYER_SIZE];
+    public double[] totalPerNumber = new double[Constants.OUTPUT_NEURON_LAYER_SIZE];
 
     public NeuralNetwork() {
 
@@ -113,13 +118,13 @@ public class NeuralNetwork {
             }
         }
 
-        /* OUTPUT BUGFIX TEST PRINTS
-        System.out.print("Output Neuron");
-        for(int i = 0; i < Constants.OUTPUT_NEURON_LAYER_SIZE; i++) { System.out.print(" " + i +": " + neurons[totalLayerSize-1][i] + ", "); }
-        System.out.print("\n");
-        outputNumber = ArrayUtils.indexOf(neurons[totalLayerSize-1], StatUtils.max(neurons[totalLayerSize-1]));
-        System.out.println("Single Number Output: " + outputNumber);
-        */
+        // OUTPUT BUGFIX TEST PRINTS
+        //System.out.print("Output Neuron");
+        //for(int i = 0; i < Constants.OUTPUT_NEURON_LAYER_SIZE; i++) { System.out.print(" " + i +": " + neurons[totalLayerSize-1][i] + ", "); }
+        //System.out.print("\n");
+        //outputNumber = ArrayUtils.indexOf(neurons[totalLayerSize-1], StatUtils.max(neurons[totalLayerSize-1]));
+        //System.out.println("Single Number Output: " + outputNumber);
+
     }
 
     public void resetCost() { Arrays.fill(cost, 0); }
@@ -131,14 +136,17 @@ public class NeuralNetwork {
 
         System.arraycopy(neurons[Constants.NEURON_LAYERS + 1], 0, output, 0, Constants.OUTPUT_NEURON_LAYER_SIZE);
 
-        int outputNumber = ArrayUtils.indexOf(output, StatUtils.max(output));
-        System.out.println("Output Number: " + outputNumber);
+        int outputNumber = Calc.findMaxIndex(output);
+        //System.out.println("Output Number: " + outputNumber);
 
-        int expectedNumber = ArrayUtils.indexOf(expected, StatUtils.max(expected));
-        System.out.println("Expected Number: " + expectedNumber);
+        int expectedNumber = Calc.findMaxIndex(expected);
+        //System.out.println("Expected Number: " + expectedNumber);
 
+        if(Manager.getInstance().getCurrentIteration() > Constants.STATISTIC_START_BATCH)
+            totalPerNumber[expectedNumber]++;
         if(outputNumber == expectedNumber && Manager.getInstance().getCurrentIteration() > Constants.STATISTIC_START_BATCH) {
             gottenRight++;
+            correctPerNumber[outputNumber]++;
         }
 
         addToCost = Calc.cost(output, expected);
@@ -150,7 +158,7 @@ public class NeuralNetwork {
             singlecost += Math.abs(addToCost[i]);
         }
 
-        System.out.println("Delta Cost: " + singlecost);
+        //System.out.println("Delta Cost: " + singlecost);
     }
 
     public void backPropagate() {
@@ -178,37 +186,49 @@ public class NeuralNetwork {
                 if (i > 0 && j > Constants.NEURON_LAYER_SIZE) { break; }
                 for (int k = 0; k < Constants.NEURON_LAYER_SIZE; k++) {
                     if (i > totalLayerSize - 3 && k > Constants.OUTPUT_NEURON_LAYER_SIZE - 1) { break; }
-                    weights[i][j][k] += Constants.WEIGHT_LEARNING_RATE * errors[i+1][k] * Calc.derivativeSigmoid(neurons[i+1][k]) * neurons[i][j];
-                    //System.out.println("Weight "+i+", "+j+", "+k+" adjusted by: " + "Learning Rate: " + Constants.LEARNING_RATE + " * Errors: " + errors[i+1][k] + " * dSig(neurons[i=" + i+1 +"][k=" + k + "]): " +  Calc.derivativeSigmoid(neurons[i+1][k]) + " * neurons[i=" + i + "][j=" + j + "]: " +  neurons[i][j] + ", totalling: " + Constants.LEARNING_RATE * errors[i+1][k] * Calc.derivativeSigmoid(neurons[i+1][k]) * neurons[i][j]);
+                    deltaWeights[i][j][k] += Constants.WEIGHT_LEARNING_RATE * errors[i+1][k] * Calc.derivativeSigmoid(neurons[i+1][k]) * neurons[i][j];
+                    //System.out.println("Weight "+i+", "+j+", "+k+" adjusted by: " + "Learning Rate: " + Constants.WEIGHT_LEARNING_RATE + " * Errors: " + errors[i+1][k] + " * dSig(neurons[i=" + i+1 +"][k=" + k + "]): " +  Calc.derivativeSigmoid(neurons[i+1][k]) + " * neurons[i=" + i + "][j=" + j + "]: " +  neurons[i][j] + ", totalling: " + Constants.WEIGHT_LEARNING_RATE * errors[i+1][k] * Calc.derivativeSigmoid(neurons[i+1][k]) * neurons[i][j]);
                 }
                 if(!(j > Constants.NEURON_LAYER_SIZE - 1)) {
-                    biases[i + 1][j] += Constants.BIAS_LEARNING_RATE * errors[i + 1][j] * Calc.derivativeSigmoid(neurons[i + 1][j]);
+                    deltaBiases[i + 1][j] += Constants.BIAS_LEARNING_RATE * errors[i + 1][j] * Calc.derivativeSigmoid(neurons[i + 1][j]);
                     //System.out.println("Bias "+(i+1)+", "+j+" adjusted by: Learning Rate: " + Constants.BIAS_LEARNING_RATE + " * Errors: " + (i+1) + ", " + j + ": " + errors[i + 1][j] + " * dSig(neurons[i=" + (i+1) +"][j=" + j + "]): " + Calc.derivativeSigmoid(neurons[i + 1][j]) + ", Totalling: " + Constants.BIAS_LEARNING_RATE * errors[i + 1][j] * Calc.derivativeSigmoid(neurons[i + 1][j]));
                 }
             }
         }
     }
 
-    /*
-    public void saveToJson() {
-
-        try {
-            NetworkTranscript networkTranscript = new NetworkTranscript(biases, weights);
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            File file = new File("neural_network.json");
-            if (!file.exists()) {
-                file.createNewFile();
+    public void realizeBackProp() {
+        for (int i = totalLayerSize - 2; i >= 0; i--) {
+            for (int j = 0; j < Constants.INPUT_NEURON_LAYER_SIZE; j++) {
+                if (i > 0 && j > Constants.NEURON_LAYER_SIZE) { break; }
+                for (int k = 0; k < Constants.NEURON_LAYER_SIZE; k++) {
+                    if (i > totalLayerSize - 3 && k > Constants.OUTPUT_NEURON_LAYER_SIZE - 1) { break; }
+                    weights[i][j][k] += deltaWeights[i][j][k];
+                    //System.out.println("Weight "+i+", "+j+", "+k+" adjusted by: " + "Learning Rate: " + Constants.WEIGHT_LEARNING_RATE + " * Errors: " + errors[i+1][k] + " * dSig(neurons[i=" + i+1 +"][k=" + k + "]): " +  Calc.derivativeSigmoid(neurons[i+1][k]) + " * neurons[i=" + i + "][j=" + j + "]: " +  neurons[i][j] + ", totalling: " + Constants.WEIGHT_LEARNING_RATE * errors[i+1][k] * Calc.derivativeSigmoid(neurons[i+1][k]) * neurons[i][j]);
+                }
+                if(!(j > Constants.NEURON_LAYER_SIZE - 1)) {
+                    biases[i][j] += deltaBiases[i][j];
+                    //System.out.println("Bias "+(i+1)+", "+j+" adjusted by: Learning Rate: " + Constants.BIAS_LEARNING_RATE + " * Errors: " + (i+1) + ", " + j + ": " + errors[i + 1][j] + " * dSig(neurons[i=" + (i+1) +"][j=" + j + "]): " + Calc.derivativeSigmoid(neurons[i + 1][j]) + ", Totalling: " + Constants.BIAS_LEARNING_RATE * errors[i + 1][j] * Calc.derivativeSigmoid(neurons[i + 1][j]));
+                }
             }
-            String json = gson.toJson(networkTranscript);
-            BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(file));
-            bufferedWriter.write(json);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
-    public void loadFromJson() {
-
+    public void resetDeltas() {
+        deltaWeights = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE][Constants.NEURON_LAYER_SIZE];
+        deltaBiases = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE];
     }
-    */ //Unused Methods for saving and loading Networks (implemented soon)
+
+
+    public void saveToJson() {
+        NetworkTranscript nt = new NetworkTranscript(biases, weights);
+        nt.saveToJson();
+    }
+
+    public void loadFromJson() {
+        NetworkTranscript nt = new NetworkTranscript(biases, weights);
+        NetworkTranscript.loadFromJson();
+        weights = nt.getWeights();
+        biases = nt.getBiases();
+    }
 }
