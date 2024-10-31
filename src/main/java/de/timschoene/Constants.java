@@ -36,5 +36,6 @@ public class Constants {
     public static final int NEURON_LAYERS = 1; //Number of hidden Layers in the Network (Sweet Spot = 2)
     public static final int OUTPUT_NEURON_LAYER_SIZE = 10; //There is 10 output numbers (Fixed)
 
-
+    //DATA STORAGE
+    public static final boolean USE_XML = true;
 }

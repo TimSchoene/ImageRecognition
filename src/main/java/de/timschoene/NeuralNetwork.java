@@ -1,9 +1,5 @@
 package de.timschoene;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -32,8 +28,8 @@ public class NeuralNetwork {
         private double[][][] deltaWeights = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE][Constants.NEURON_LAYER_SIZE];
     private final double[] cost = new double[Constants.OUTPUT_NEURON_LAYER_SIZE];
     public int gottenRight = 0; //Tracking how many images the network has identified correctly
-    public double[] correctPerNumber = new double[Constants.OUTPUT_NEURON_LAYER_SIZE];
-    public double[] totalPerNumber = new double[Constants.OUTPUT_NEURON_LAYER_SIZE];
+    public double[] correctPerNumber = new double[Constants.OUTPUT_NEURON_LAYER_SIZE]; //for statistics
+    public double[] totalPerNumber = new double[Constants.OUTPUT_NEURON_LAYER_SIZE]; //for statistics
 
     public NeuralNetwork() {
 
@@ -197,7 +193,7 @@ public class NeuralNetwork {
         }
     }
 
-    public void realizeBackProp() {
+    public void addDeltas() {
         for (int i = totalLayerSize - 2; i >= 0; i--) {
             for (int j = 0; j < Constants.INPUT_NEURON_LAYER_SIZE; j++) {
                 if (i > 0 && j > Constants.NEURON_LAYER_SIZE) { break; }
@@ -219,15 +215,13 @@ public class NeuralNetwork {
         deltaBiases = new double[totalLayerSize][Constants.INPUT_NEURON_LAYER_SIZE];
     }
 
-
-    public void saveToJson() {
+    public void saveToXML() {
         NetworkTranscript nt = new NetworkTranscript(biases, weights);
-        nt.saveToJson();
+        nt.saveToXML();
     }
 
-    public void loadFromJson() {
-        NetworkTranscript nt = new NetworkTranscript(biases, weights);
-        NetworkTranscript.loadFromJson();
+    public void loadFromXML() {
+        NetworkTranscript nt = NetworkTranscript.loadFromXML();
         weights = nt.getWeights();
         biases = nt.getBiases();
     }

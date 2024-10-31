@@ -20,39 +20,35 @@ public class Manager {
         network = new NeuralNetwork();
         image = new Image(Constants.TRAINING_IMAGE_FILE_PATH, Constants.TRAINING_CHECK_FILE_PATH, Constants.IMAGE_WIDTH, Constants.IMAGE_HEIGHT, Constants.NUM_TRAINING_IMAGES);
 
-        //network.loadFromJson();
-        network.oneTimeSetup(); //REMOVE LATER
+        if(Constants.USE_XML && NetworkTranscript.fileExists())
+            network.loadFromXML();
+        else
+            network.oneTimeSetup();
 
-        for(int i = 0; i < Constants.AMOUNT_TRAINING; i++) { //number of training images to use
+        for(int i = 0; i < Constants.AMOUNT_TRAINING; i++) {
             network.resetCost();
             if(currentImage >= Constants.NUM_TRAINING_IMAGES) { currentImage = 0; }
 
             System.out.println("Iteration " + (currentIteration) + ": ");
             loadNextImageIntoNetwork();
             network.forwardPropagate();
-            addCost();
+            addCostToDeltas();
             currentIteration++;
 
             network.backPropagate();
             if(i % Constants.MINI_BATCH_SIZE == 0) {
-                network.realizeBackProp(); //every 100 gens the backpropagation deltas are added to the weights and biases
+                network.addDeltas();
                 network.resetDeltas();
             }
         }
+        printStats();
 
-        double correctPercentage = (double)network.gottenRight / (Constants.AMOUNT_TRAINING - Constants.STATISTIC_START_BATCH) * 100;
-        System.out.println("The Network identified " + network.gottenRight + " of " + (Constants.AMOUNT_TRAINING - Constants.STATISTIC_START_BATCH) + " images correctly");
-        System.out.println("The Network identified " + correctPercentage + "% of images correctly.");
-        for (int i = 0; i < Constants.OUTPUT_NEURON_LAYER_SIZE; i++) {
-            network.correctPerNumber[i] /= network.totalPerNumber[i];
-            System.out.println("The Network got " + network.correctPerNumber[i]*100 + "% of " + i + "s correctly.");
-            System.out.println("The Network guessed a " + i + " " + network.totalPerNumber[i]*100 / (Constants.AMOUNT_TRAINING - Constants.STATISTIC_START_BATCH) + "% of times.");
-        }
-
-        //network.saveToJson();
+        if(Constants.USE_XML)
+            network.saveToXML();
     }
 
-    private void addCost() {
+
+    private void addCostToDeltas() {
         double[] expected;
         expected = image.getResult(currentImage);
         network.addCost(expected);
@@ -75,9 +71,16 @@ public class Manager {
         return network;
     }
 
-    public int getCurrentImage() {
-        return currentImage;
-    }
-
     public int getCurrentIteration() { return currentIteration; }
+
+    private void printStats() {
+        double correctPercentage = (double)network.gottenRight / (Constants.AMOUNT_TRAINING - Constants.STATISTIC_START_BATCH) * 100;
+        for (int i = 0; i < Constants.OUTPUT_NEURON_LAYER_SIZE; i++) {
+            network.correctPerNumber[i] /= network.totalPerNumber[i];
+            System.out.println("The Network got " + network.correctPerNumber[i]*100 + "% of " + i + "s correctly.");
+            System.out.println("The Network guessed a " + i + " " + network.totalPerNumber[i]*100 / (Constants.AMOUNT_TRAINING - Constants.STATISTIC_START_BATCH) + "% of times.");
+        }
+        System.out.println("The Network identified " + network.gottenRight + " of " + (Constants.AMOUNT_TRAINING - Constants.STATISTIC_START_BATCH) + " images correctly");
+        System.out.println("The Network identified " + correctPercentage + "% of images correctly.");
+    }
 }

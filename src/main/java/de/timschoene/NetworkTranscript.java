@@ -1,6 +1,5 @@
 package de.timschoene;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import java.io.*;
@@ -8,7 +7,7 @@ import java.io.*;
 public class NetworkTranscript {
     private double[][][] weights;
     private double[][] biases;
-    static String filePath = "./data.json";
+    static String filePath = "./data.xml";
 
     public NetworkTranscript() {
         // No-args constructor for Jackson
@@ -23,43 +22,42 @@ public class NetworkTranscript {
         return biases;
     }
 
-    public void setBiases(double[][] biases) {
-        this.biases = biases;
-    }
-
     public double[][][] getWeights() {
         return weights;
     }
 
-    public void setWeights(double[][][] weights) {
-        this.weights = weights;
+    public static boolean fileExists() {
+        File file = new File(filePath);
+        return file.exists();
     }
 
-    public void saveToJson() {
+    public void saveToXML() {
         XmlMapper xmlMapper = new XmlMapper();
         File file = new File(filePath);
         try {
             if (!file.exists()) {
                 System.out.println("File does not exist");
-                file.createNewFile();
+                if(file.createNewFile())
+                    System.out.println("File created");
             }
             String xml = xmlMapper.writeValueAsString(this);
-            FileWriter writer = new FileWriter(file);
+            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
             writer.write(xml);
+            writer.flush();
+            writer.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static NetworkTranscript loadFromJson() {
+    public static NetworkTranscript loadFromXML() {
         XmlMapper xmlMapper = new XmlMapper();
+        //xmlMapper.something
         File file = new File(filePath);
         try {
             if (!file.exists()) {
                 file.createNewFile();
             }
-            FileReader reader = new FileReader(file);
-            String xml = reader.toString();
             return xmlMapper.readValue(file, NetworkTranscript.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
